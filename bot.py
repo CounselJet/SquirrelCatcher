@@ -250,7 +250,7 @@ class BackButton(discord.ui.Button):
 
 class PageSelect(discord.ui.Select):
     """Dropdown to switch between menu pages by editing the message."""
-    def __init__(self, current_page):
+    def __init__(self, current_page, row=1):
         options = [
             discord.SelectOption(
                 label=info["label"], value=key, emoji=info["emoji"],
@@ -259,8 +259,8 @@ class PageSelect(discord.ui.Select):
             for key, info in MENU_PAGES.items()
         ]
         super().__init__(
-            options=options, custom_id=f"{current_page}:select",
-            placeholder="Navigate...", row=1,
+            options=options, custom_id=f"{current_page}:select:{row}",
+            placeholder="Navigate...", row=row,
         )
         self.current_page = current_page
 
@@ -310,10 +310,14 @@ class MenuView(discord.ui.View):
             self.add_item(MenuButton(label="Help", emoji="❓", style=discord.ButtonStyle.primary,
                                      action="help", custom_id="info:help", row=0))
 
-        # Row 1: Back button (if navigated from another page) + Page selector
+        # Row 1+: Back button (if navigated from another page) + Page selector
+        # Select must be alone in its row (Discord requirement), so if back button
+        # is present it goes in row 1 and select goes in row 2.
         if prev_page is not None:
             self.add_item(BackButton(page=page, prev_page=prev_page))
-        self.add_item(PageSelect(current_page=page))
+            self.add_item(PageSelect(current_page=page, row=2))
+        else:
+            self.add_item(PageSelect(current_page=page, row=1))
 
 
 async def _send(ctx_or_interaction, embed, view=None, ephemeral=False):
@@ -899,12 +903,12 @@ async def before_auto_catch():
 @bot.event
 async def on_ready():
     await db.init_db(DATABASE_URL)
-    # Register persistent views for all page combinations
+    # Register persistent views for all page/back combinations
     for page in MENU_PAGES:
-        bot.add_view(MenuView(page=page))
+        bot.add_view(MenuView(page=page))  # no back button, select on row 1
         for prev in MENU_PAGES:
             if prev != page:
-                bot.add_view(MenuView(page=page, prev_page=prev))
+                bot.add_view(MenuView(page=page, prev_page=prev))  # back on row 1, select on row 2
     if not auto_catch_tick.is_running():
         auto_catch_tick.start()
     print(f"🐿️ Squirrel Catcher is online as {bot.user}!")
