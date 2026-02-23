@@ -596,9 +596,17 @@
   .squirrel-card[data-rarity="Mythic"] .rarity-badge { background: rgba(231,76,60,0.2); color: #E74C3C; }
 
   /* Mystery squirrel cards */
-  .squirrel-card.mystery img {
+  .squirrel-card.mystery .mystery-placeholder {
+    width: 100%;
+    height: 180px;
     background: rgba(255,255,255,0.05);
-    object-fit: contain;
+    border-radius: 10px;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: rgba(255,248,237,0.15);
   }
   .squirrel-card.mystery .name {
     color: rgba(255,248,237,0.3);
@@ -664,15 +672,15 @@
   .shop-card {
     text-align: center;
     padding: 1.8rem 1.2rem;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(198,139,60,0.1);
     border-radius: 14px;
     transition: all 0.3s;
   }
 
   .shop-card:hover {
-    background: rgba(255,255,255,0.08);
     transform: translateY(-3px);
+    box-shadow: 0 8px 30px var(--shadow);
   }
 
   .shop-emoji { font-size: 2.2rem; margin-bottom: 0.5rem; display: block; }
@@ -680,11 +688,12 @@
     font-family: var(--font-display);
     font-weight: 600;
     font-size: 1rem;
+    color: var(--bark);
     margin-bottom: 0.3rem;
   }
   .shop-desc {
     font-size: 0.82rem;
-    color: rgba(255,248,237,0.5);
+    color: var(--bark-light);
     margin-bottom: 0.6rem;
     line-height: 1.4;
   }
@@ -701,7 +710,7 @@
     font-size: 0.68rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: rgba(255,248,237,0.35);
+    color: var(--bark-light);
     margin-top: 0.5rem;
   }
 
@@ -1174,7 +1183,7 @@
       const isMystery = !revealedNames.has(s.name);
       return `
       <div class="squirrel-card${isMystery ? ' mystery' : ''}" data-rarity="${s.rarity}">
-        <img src="${isMystery ? '' : s.image}" alt="${isMystery ? '???' : s.name}" loading="lazy">
+        ${isMystery ? '<div class="mystery-placeholder">?</div>' : `<img src="${s.image}" alt="${s.name}" loading="lazy">`}
         <div class="name">${isMystery ? '❓ ???' : s.emoji + ' ' + s.name}</div>
         <span class="rarity-badge">${s.rarity}</span>
         <div class="stats">
