@@ -502,10 +502,12 @@ async def do_daily(ctx_or_interaction):
     player = await db.get_player(user_id)
 
     last_daily = player.get("last_daily", None)
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
 
     if last_daily:
         last = datetime.fromisoformat(last_daily)
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
         if (now - last).total_seconds() < 86400:
             remaining = 86400 - (now - last).total_seconds()
             hours = int(remaining // 3600)
