@@ -6,18 +6,19 @@ Catch squirrels, earn acorns, and become the ultimate squirrel wrangler!
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-import json
 import os
 import random
 import asyncio
 from datetime import datetime, timedelta
 
+import db
+
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
 
 load_dotenv()
 BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+DATABASE_URL = os.getenv("DATABASE_URL")
 PREFIX = "!sq "
-DATA_FILE = "player_data.json"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -87,40 +88,6 @@ JUNK_CATCHES = [
 
 CATCH_COOLDOWN = 10  # seconds between catches
 cooldowns: dict[int, datetime] = {}
-
-# ─── DATA PERSISTENCE ─────────────────────────────────────────────────────────
-
-def load_data() -> dict:
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
-    return {}
-
-def save_data(data: dict):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
-
-def get_player(user_id: str) -> dict:
-    data = load_data()
-    if user_id not in data:
-        data[user_id] = {
-            "acorns": 0,
-            "silver_acorns": 0,
-            "emerald_acorns": 0,
-            "golden_acorns": 0,
-            "catches": {},
-            "total_catches": 0,
-            "junk_catches": 0,
-            "level": 1,
-            "xp": 0,
-        }
-        save_data(data)
-    return data[user_id]
-
-def update_player(user_id: str, player: dict):
-    data = load_data()
-    data[user_id] = player
-    save_data(data)
 
 # ─── LEVELING ─────────────────────────────────────────────────────────────────
 
@@ -237,7 +204,7 @@ async def do_catch(ctx_or_interaction):
             return
 
     cooldowns[user_id] = now + timedelta(seconds=CATCH_COOLDOWN)
-    player = get_player(user_id)
+    player = await db.get_player(user_id)
 
     # Suspense message
     if is_interaction:
@@ -284,14 +251,14 @@ async def do_catch(ctx_or_interaction):
     if leveled:
         embed.add_field(name="🎉 LEVEL UP!", value=f"You are now **Level {player['level']}**!", inline=False)
 
-    update_player(user_id, player)
+    await db.update_player(user_id, player)
     await msg.edit(content=None, embed=embed, view=MenuView())
 
 
 async def do_bag(ctx_or_interaction):
     is_interaction = isinstance(ctx_or_interaction, discord.Interaction)
     user = ctx_or_interaction.user if is_interaction else ctx_or_interaction.author
-    player = get_player(str(user.id))
+    player = await db.get_player(str(user.id))
     catches = player.get("catches", {})
 
     if not catches:
@@ -320,7 +287,7 @@ async def do_bag(ctx_or_interaction):
 async def do_balance(ctx_or_interaction):
     is_interaction = isinstance(ctx_or_interaction, discord.Interaction)
     user = ctx_or_interaction.user if is_interaction else ctx_or_interaction.author
-    player = get_player(str(user.id))
+    player = await db.get_player(str(user.id))
 
     lines = []
     for currency, emoji in CURRENCIES.items():
@@ -341,7 +308,7 @@ async def do_balance(ctx_or_interaction):
 async def do_profile(ctx_or_interaction):
     is_interaction = isinstance(ctx_or_interaction, discord.Interaction)
     user = ctx_or_interaction.user if is_interaction else ctx_or_interaction.author
-    player = get_player(str(user.id))
+    player = await db.get_player(str(user.id))
     xp_needed = xp_for_level(player["level"])
 
     embed = discord.Embed(title=f"🐿️ {user.display_name}'s Profile", color=0x8B4513)
@@ -360,7 +327,7 @@ async def do_daily(ctx_or_interaction):
     is_interaction = isinstance(ctx_or_interaction, discord.Interaction)
     user = ctx_or_interaction.user if is_interaction else ctx_or_interaction.author
     user_id = str(user.id)
-    player = get_player(user_id)
+    player = await db.get_player(user_id)
 
     last_daily = player.get("last_daily", None)
     now = datetime.now()
@@ -382,7 +349,7 @@ async def do_daily(ctx_or_interaction):
     reward = 50 + (player["level"] * 10)
     player["acorns"] += reward
     player["last_daily"] = now.isoformat()
-    update_player(user_id, player)
+    await db.update_player(user_id, player)
 
     embed = discord.Embed(
         title="🎁 Daily Bonus Claimed!",
@@ -395,7 +362,7 @@ async def do_daily(ctx_or_interaction):
 async def do_bestiary(ctx_or_interaction):
     is_interaction = isinstance(ctx_or_interaction, discord.Interaction)
     user = ctx_or_interaction.user if is_interaction else ctx_or_interaction.author
-    player = get_player(str(user.id))
+    player = await db.get_player(str(user.id))
     catches = player.get("catches", {})
 
     lines = []
@@ -412,7 +379,7 @@ async def do_bestiary(ctx_or_interaction):
 
 
 async def do_leaderboard(ctx_or_interaction):
-    data = load_data()
+    data = await db.load_all_players()
     if not data:
         embed = discord.Embed(title="🏆 Leaderboard", description="No squirrel catchers yet!", color=0xF1C40F)
         await _send(ctx_or_interaction, embed)
@@ -480,9 +447,11 @@ async def do_help(ctx_or_interaction):
 
 @bot.event
 async def on_ready():
+    await db.init_db(DATABASE_URL)
     print(f"🐿️ Squirrel Catcher is online as {bot.user}!")
     print(f"   Prefix: {PREFIX}")
     print(f"   Servers: {len(bot.guilds)}")
+    print(f"   Database: connected")
     await bot.change_presence(activity=discord.Game(name=f"{PREFIX}help | 🐿️"))
 
 # ─── COMMANDS ─────────────────────────────────────────────────────────────────
@@ -526,7 +495,7 @@ async def exchange_cmd(ctx, amount: int = 0):
         return
 
     user_id = str(ctx.author.id)
-    player = get_player(user_id)
+    player = await db.get_player(user_id)
 
     if player["acorns"] < amount:
         await ctx.send(f"❌ You only have **{player['acorns']:,}** 🌰 acorns!")
@@ -540,7 +509,7 @@ async def exchange_cmd(ctx, amount: int = 0):
     spent = silver_gained * 100
     player["acorns"] -= spent
     player["silver_acorns"] += silver_gained
-    update_player(user_id, player)
+    await db.update_player(user_id, player)
 
     await ctx.send(f"🔄 Exchanged **{spent:,}** 🌰 → **{silver_gained:,}** 🥈🌰 Silver Acorns!")
 
@@ -548,7 +517,7 @@ async def exchange_cmd(ctx, amount: int = 0):
 @bot.command(name="exchange_silver", aliases=["exs"])
 async def exchange_silver_cmd(ctx, amount: int = 0):
     user_id = str(ctx.author.id)
-    player = get_player(user_id)
+    player = await db.get_player(user_id)
 
     if amount <= 0:
         await ctx.send(f"Usage: `{PREFIX}exchange_silver <amount>` (10 🥈🌰 = 1 💚🌰)")
@@ -565,7 +534,7 @@ async def exchange_silver_cmd(ctx, amount: int = 0):
     spent = emerald_gained * 10
     player["silver_acorns"] -= spent
     player["emerald_acorns"] += emerald_gained
-    update_player(user_id, player)
+    await db.update_player(user_id, player)
 
     await ctx.send(f"🔄 Exchanged **{spent:,}** 🥈🌰 → **{emerald_gained:,}** 💚🌰 Emerald Acorns!")
 
@@ -573,7 +542,7 @@ async def exchange_silver_cmd(ctx, amount: int = 0):
 @bot.command(name="exchange_emerald", aliases=["exe"])
 async def exchange_emerald_cmd(ctx, amount: int = 0):
     user_id = str(ctx.author.id)
-    player = get_player(user_id)
+    player = await db.get_player(user_id)
 
     if amount <= 0:
         await ctx.send(f"Usage: `{PREFIX}exchange_emerald <amount>` (10 💚🌰 = 1 ✨🌰)")
@@ -590,7 +559,7 @@ async def exchange_emerald_cmd(ctx, amount: int = 0):
     spent = golden_gained * 10
     player["emerald_acorns"] -= spent
     player["golden_acorns"] += golden_gained
-    update_player(user_id, player)
+    await db.update_player(user_id, player)
 
     await ctx.send(f"🔄 Exchanged **{spent:,}** 💚🌰 → **{golden_gained:,}** ✨🌰 Golden Acorns!")
 
@@ -612,7 +581,7 @@ async def sell_cmd(ctx, *, squirrel_name: str = ""):
         return
 
     user_id = str(ctx.author.id)
-    player = get_player(user_id)
+    player = await db.get_player(user_id)
 
     # Find matching squirrel (case-insensitive)
     match = None
@@ -636,7 +605,7 @@ async def sell_cmd(ctx, *, squirrel_name: str = ""):
     if player["catches"][sq_name] == 0:
         del player["catches"][sq_name]
     player["acorns"] += sell_value
-    update_player(user_id, player)
+    await db.update_player(user_id, player)
 
     await ctx.send(f"💰 Sold **{sq_name}** for **{sell_value}** 🌰 acorns!")
 

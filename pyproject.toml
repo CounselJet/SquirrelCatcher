@@ -5,4 +5,5 @@ requires-python = ">=3.10"
 dependencies = [
     "discord.py>=2.3.0",
     "python-dotenv>=1.0.0",
+    "asyncpg>=0.29.0",
 ]
