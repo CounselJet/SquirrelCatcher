@@ -238,7 +238,7 @@ class BackButton(discord.ui.Button):
     def __init__(self, *, page, prev_page):
         super().__init__(
             label="Back", emoji="◀️", style=discord.ButtonStyle.secondary,
-            custom_id=f"{page}:back:{prev_page}", row=1,
+            custom_id=f"{page}:back:{prev_page}", row=2,
         )
         self.target = prev_page
 
@@ -250,7 +250,7 @@ class BackButton(discord.ui.Button):
 
 class PageSelect(discord.ui.Select):
     """Dropdown to switch between menu pages by editing the message."""
-    def __init__(self, current_page, row=1):
+    def __init__(self, current_page, row=0):
         options = [
             discord.SelectOption(
                 label=info["label"], value=key, emoji=info["emoji"],
@@ -259,7 +259,7 @@ class PageSelect(discord.ui.Select):
             for key, info in MENU_PAGES.items()
         ]
         super().__init__(
-            options=options, custom_id=f"{current_page}:select:{row}",
+            options=options, custom_id=f"{current_page}:select",
             placeholder="Navigate...", row=row,
         )
         self.current_page = current_page
@@ -281,43 +281,41 @@ class MenuView(discord.ui.View):
         self.current_page = page
         self.prev_page = prev_page
 
-        # Row 0: Page-specific action buttons
+        # Row 0: Page selector (always on top)
+        self.add_item(PageSelect(current_page=page, row=0))
+
+        # Row 1: Page-specific action buttons
         if page == "play":
             self.add_item(MenuButton(label="Catch!", emoji="🪤", style=discord.ButtonStyle.green,
-                                     action="catch", custom_id="play:catch", row=0))
+                                     action="catch", custom_id="play:catch", row=1))
             self.add_item(MenuButton(label="Bag", emoji="🎒", style=discord.ButtonStyle.primary,
-                                     action="bag", custom_id="play:bag", row=0))
+                                     action="bag", custom_id="play:bag", row=1))
             self.add_item(MenuButton(label="Balance", emoji="💰", style=discord.ButtonStyle.primary,
-                                     action="balance", custom_id="play:balance", row=0))
+                                     action="balance", custom_id="play:balance", row=1))
             self.add_item(MenuButton(label="Profile", emoji="🐿️", style=discord.ButtonStyle.primary,
-                                     action="profile", custom_id="play:profile", row=0))
+                                     action="profile", custom_id="play:profile", row=1))
             self.add_item(discord.ui.Button(label="Donate", style=discord.ButtonStyle.link,
-                                            emoji="💛", url="https://ko-fi.com/squirrelcatcher", row=0))
+                                            emoji="💛", url="https://ko-fi.com/squirrelcatcher", row=1))
         elif page == "shop":
             self.add_item(MenuButton(label="Browse Shop", emoji="🛒", style=discord.ButtonStyle.green,
-                                     action="shop", custom_id="shop:browse", row=0))
+                                     action="shop", custom_id="shop:browse", row=1))
             self.add_item(MenuButton(label="Active Buffs", emoji="⚡", style=discord.ButtonStyle.primary,
-                                     action="buffs", custom_id="shop:buffs", row=0))
+                                     action="buffs", custom_id="shop:buffs", row=1))
         elif page == "info":
             self.add_item(MenuButton(label="Daily", emoji="🎁", style=discord.ButtonStyle.green,
-                                     action="daily", custom_id="info:daily", row=0))
+                                     action="daily", custom_id="info:daily", row=1))
             self.add_item(MenuButton(label="Bestiary", emoji="📖", style=discord.ButtonStyle.primary,
-                                     action="bestiary", custom_id="info:bestiary", row=0))
+                                     action="bestiary", custom_id="info:bestiary", row=1))
             self.add_item(MenuButton(label="Leaderboard", emoji="🏆", style=discord.ButtonStyle.primary,
-                                     action="leaderboard", custom_id="info:leaderboard", row=0))
+                                     action="leaderboard", custom_id="info:leaderboard", row=1))
             self.add_item(MenuButton(label="Exchange", emoji="🔄", style=discord.ButtonStyle.primary,
-                                     action="exchange", custom_id="info:exchange", row=0))
+                                     action="exchange", custom_id="info:exchange", row=1))
             self.add_item(MenuButton(label="Help", emoji="❓", style=discord.ButtonStyle.primary,
-                                     action="help", custom_id="info:help", row=0))
+                                     action="help", custom_id="info:help", row=1))
 
-        # Row 1+: Back button (if navigated from another page) + Page selector
-        # Select must be alone in its row (Discord requirement), so if back button
-        # is present it goes in row 1 and select goes in row 2.
+        # Row 2: Back button (if navigated from another page)
         if prev_page is not None:
             self.add_item(BackButton(page=page, prev_page=prev_page))
-            self.add_item(PageSelect(current_page=page, row=2))
-        else:
-            self.add_item(PageSelect(current_page=page, row=1))
 
 
 async def _send(ctx_or_interaction, embed, view=None, ephemeral=False):
