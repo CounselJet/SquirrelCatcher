@@ -899,6 +899,12 @@ async def before_auto_catch():
 @bot.event
 async def on_ready():
     await db.init_db(DATABASE_URL)
+    # Register persistent views for all page combinations
+    for page in MENU_PAGES:
+        bot.add_view(MenuView(page=page))
+        for prev in MENU_PAGES:
+            if prev != page:
+                bot.add_view(MenuView(page=page, prev_page=prev))
     if not auto_catch_tick.is_running():
         auto_catch_tick.start()
     print(f"🐿️ Squirrel Catcher is online as {bot.user}!")
@@ -1158,10 +1164,4 @@ async def on_command_error(ctx, error):
 
 if __name__ == "__main__":
     print("🐿️ Starting Squirrel Catcher Bot...")
-    # Register persistent views for all page combinations
-    for page in MENU_PAGES:
-        bot.add_view(MenuView(page=page))
-        for prev in MENU_PAGES:
-            if prev != page:
-                bot.add_view(MenuView(page=page, prev_page=prev))
     bot.run(BOT_TOKEN)
