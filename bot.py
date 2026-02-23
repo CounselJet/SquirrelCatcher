@@ -152,6 +152,8 @@ class MenuView(discord.ui.View):
     async def profile_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await do_profile(interaction)
 
+    @discord.ui.button(label="Donate", style=discord.ButtonStyle.link, emoji="💛", url="https://ko-fi.com/squirrelcatcher", row=0)
+
     @discord.ui.select(
         placeholder="More actions...",
         options=[
