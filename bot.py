@@ -123,6 +123,9 @@ ACORN_MAGNET_BONUSES = [0, 5, 10, 15]  # index = acorn_magnet_tier
 CATCH_COOLDOWN = 10  # base seconds between catches
 cooldowns: dict[int, datetime] = {}
 
+# Track which menu page an interaction came from (Interaction uses __slots__)
+_interaction_pages: dict[int, str] = {}
+
 # ─── LEVELING ─────────────────────────────────────────────────────────────────
 
 def xp_for_level(level: int) -> int:
@@ -222,7 +225,7 @@ class MenuButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         # Carry the current page context so response messages keep the same menu
-        interaction._menu_page = self.view.current_page
+        _interaction_pages[interaction.id] = self.view.current_page
         handlers = {
             "catch": do_catch, "bag": do_bag, "balance": do_balance,
             "profile": do_profile, "shop": do_shop, "buffs": do_buffs,
@@ -305,7 +308,8 @@ class MenuView(discord.ui.View):
 async def _send(ctx_or_interaction, embed, view=None, ephemeral=False):
     """Send an embed from either a command context or interaction."""
     if view is None:
-        page = getattr(ctx_or_interaction, '_menu_page', 'play')
+        iid = getattr(ctx_or_interaction, 'id', None)
+        page = _interaction_pages.pop(iid, 'play') if iid else 'play'
         view = MenuView(page=page)
     if isinstance(ctx_or_interaction, discord.Interaction):
         await ctx_or_interaction.response.send_message(embed=embed, view=view, ephemeral=ephemeral)
@@ -418,7 +422,8 @@ async def do_catch(ctx_or_interaction):
         embed.add_field(name="🎉 LEVEL UP!", value=f"You are now **Level {player['level']}**!", inline=False)
 
     await db.update_player(user_id, player)
-    page = getattr(ctx_or_interaction, '_menu_page', 'play')
+    iid = getattr(ctx_or_interaction, 'id', None)
+    page = _interaction_pages.pop(iid, 'play') if iid else 'play'
     await msg.edit(content=None, embed=embed, view=MenuView(page=page))
 
 
