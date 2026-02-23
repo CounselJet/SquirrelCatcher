@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Squirrel Catcher — The Nuttiest Discord Bot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bark: #3D2B1F;
+    --bark-light: #5C3D2E;
+    --leaf: #4A7C59;
+    --leaf-bright: #6BBF59;
+    --acorn: #C68B3C;
+    --acorn-glow: #E8A838;
+    --cream: #FFF8ED;
+    --cream-dark: #F5EBD6;
+    --sky: #87CEEB;
+    --mythic-red: #E74C3C;
+    --legendary-gold: #F1C40F;
+    --epic-purple: #9B59B6;
+    --rare-blue: #3498DB;
+    --shadow: rgba(61, 43, 31, 0.15);
+    --font-display: 'Fredoka', sans-serif;
+    --font-body: 'Outfit', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--cream);
+    color: var(--bark);
+    overflow-x: hidden;
+  }
+
+  /* ───── Animated forest background ───── */
+  .forest-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(175deg, #C8E6C0 0%, var(--cream) 35%, var(--cream-dark) 100%);
+    overflow: hidden;
+  }
+
+  .forest-bg::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(107, 191, 89, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(198, 139, 60, 0.06) 0%, transparent 40%),
+                radial-gradient(ellipse at 60% 80%, rgba(74, 124, 89, 0.05) 0%, transparent 45%);
+    animation: drift 20s ease-in-out infinite;
+  }
+
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(2%, -1%) rotate(0.5deg); }
+    66% { transform: translate(-1%, 1%) rotate(-0.3deg); }
+  }
+
+  /* floating leaves */
+  .leaf-particle {
+    position: fixed;
+    font-size: 1.2rem;
+    opacity: 0;
+    z-index: 0;
+    pointer-events: none;
+    animation: fall linear infinite;
+  }
+
+  @keyframes fall {
+    0% { transform: translateY(-5vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.5; }
+    90% { opacity: 0.3; }
+    100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* ───── Navigation ───── */
+  nav {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 100;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+
+  nav.scrolled {
+    background: rgba(255, 248, 237, 0.92);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 2px 20px var(--shadow);
+  }
+
+  .nav-logo {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: var(--bark);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .nav-logo span { font-size: 1.6rem; }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+    align-items: center;
+  }
+
+  .nav-links a {
+    font-family: var(--font-body);
+    font-weight: 500;
+    color: var(--bark-light);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+    letter-spacing: 0.02em;
+  }
+
+  .nav-links a:hover { color: var(--acorn); }
+
+  .nav-cta {
+    background: var(--leaf);
+    color: white !important;
+    padding: 0.55rem 1.3rem;
+    border-radius: 50px;
+    font-weight: 600 !important;
+    transition: background 0.2s, transform 0.2s !important;
+  }
+
+  .nav-cta:hover {
+    background: var(--leaf-bright) !important;
+    transform: translateY(-1px);
+  }
+
+  .mobile-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--bark);
+  }
+
+  /* ───── Hero ───── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6rem 2rem 4rem;
+    position: relative;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(74, 124, 89, 0.1);
+    border: 1px solid rgba(74, 124, 89, 0.2);
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--leaf);
+    margin-bottom: 1.5rem;
+    animation: fadeInUp 0.6s ease-out;
+  }
+
+  .hero-badge .pulse {
+    width: 8px;
+    height: 8px;
+    background: var(--leaf-bright);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.5); }
+  }
+
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 0.3rem;
+    animation: fadeInUp 0.6s ease-out 0.1s both;
+  }
+
+  .hero h1 .squirrel-icon {
+    display: inline-block;
+    animation: bounce 2s ease-in-out infinite;
+    font-size: 0.85em;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .hero h1 .accent { color: var(--acorn); }
+
+  .hero-sub {
+    font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+    color: var(--bark-light);
+    max-width: 560px;
+    margin: 1rem auto 2.5rem;
+    line-height: 1.6;
+    font-weight: 300;
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+  }
+
+  .hero-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fadeInUp 0.6s ease-out 0.3s both;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.85rem 2rem;
+    border-radius: 50px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.05rem;
+    text-decoration: none;
+    transition: all 0.25s;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: var(--acorn);
+    color: white;
+    box-shadow: 0 4px 20px rgba(198, 139, 60, 0.35);
+  }
+
+  .btn-primary:hover {
+    background: var(--acorn-glow);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(198, 139, 60, 0.45);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--bark);
+    border: 2px solid var(--bark-light);
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--acorn);
+    color: var(--acorn);
+    transform: translateY(-2px);
+  }
+
+  .hero-preview {
+    margin-top: 4rem;
+    animation: fadeInUp 0.8s ease-out 0.5s both;
+    position: relative;
+  }
+
+  .preview-card {
+    background: #2B2D31;
+    border-radius: 16px;
+    padding: 1.5rem;
+    max-width: 440px;
+    margin: 0 auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    text-align: left;
+    font-family: 'Outfit', sans-serif;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .preview-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .preview-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--acorn);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+  }
+
+  .preview-name {
+    font-weight: 600;
+    color: #acorn;
+    font-size: 0.9rem;
+  }
+
+  .preview-bot-tag {
+    background: #5865F2;
+    color: white;
+    font-size: 0.6rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+
+  .preview-embed {
+    border-left: 4px solid var(--legendary-gold);
+    background: #1E1F22;
+    border-radius: 0 8px 8px 0;
+    padding: 1rem;
+  }
+
+  .preview-embed-title {
+    color: var(--legendary-gold);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .preview-embed-desc {
+    color: #B5BAC1;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  .preview-embed-desc .reward {
+    color: var(--acorn-glow);
+    font-weight: 600;
+  }
+
+  .sparkle {
+    position: absolute;
+    font-size: 1.5rem;
+    animation: sparkle 1.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .sparkle:nth-child(1) { top: -10px; right: -10px; animation-delay: 0s; }
+  .sparkle:nth-child(2) { bottom: 20px; left: -15px; animation-delay: 0.5s; }
+  .sparkle:nth-child(3) { top: 40%; right: -20px; animation-delay: 1s; }
+
+  @keyframes sparkle {
+    0%, 100% { opacity: 0.3; transform: scale(0.8) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ───── Section styling ───── */
+  section {
+    padding: 6rem 2rem;
+    position: relative;
+  }
+
+  .section-label {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--acorn);
+    margin-bottom: 0.75rem;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+
+  .section-desc {
+    font-size: 1.1rem;
+    color: var(--bark-light);
+    max-width: 600px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* ───── Features ───── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 3rem;
+  }
+
+  .feature-card {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(198, 139, 60, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    transition: all 0.3s;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .feature-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px var(--shadow);
+    border-color: rgba(198, 139, 60, 0.25);
+  }
+
+  .feature-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .feature-card:nth-child(1) .feature-icon { background: rgba(107, 191, 89, 0.15); }
+  .feature-card:nth-child(2) .feature-icon { background: rgba(198, 139, 60, 0.15); }
+  .feature-card:nth-child(3) .feature-icon { background: rgba(52, 152, 219, 0.15); }
+  .feature-card:nth-child(4) .feature-icon { background: rgba(155, 89, 182, 0.15); }
+  .feature-card:nth-child(5) .feature-icon { background: rgba(241, 196, 15, 0.15); }
+  .feature-card:nth-child(6) .feature-icon { background: rgba(231, 76, 60, 0.15); }
+
+  .feature-card h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .feature-card p {
+    color: var(--bark-light);
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  /* ───── Squirrel Showcase ───── */
+  #squirrels { background: var(--bark); color: var(--cream); }
+  #squirrels .section-label { color: var(--acorn-glow); }
+  #squirrels .section-desc { color: rgba(255, 248, 237, 0.65); }
+
+  .rarity-tabs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin: 2.5rem 0 2rem;
+  }
+
+  .rarity-tab {
+    padding: 0.5rem 1.2rem;
+    border-radius: 50px;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.85rem;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    background: transparent;
+    color: rgba(255,248,237,0.6);
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+
+  .rarity-tab:hover { border-color: rgba(255,255,255,0.35); color: var(--cream); }
+  .rarity-tab.active { border-color: transparent; color: white; }
+  .rarity-tab[data-rarity="Common"].active { background: #808080; }
+  .rarity-tab[data-rarity="Uncommon"].active { background: #2ECC71; }
+  .rarity-tab[data-rarity="Rare"].active { background: #3498DB; }
+  .rarity-tab[data-rarity="Epic"].active { background: #9B59B6; }
+  .rarity-tab[data-rarity="Legendary"].active { background: #F1C40F; color: var(--bark); }
+  .rarity-tab[data-rarity="Mythic"].active { background: #E74C3C; }
+
+  .squirrel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .squirrel-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 1.3rem;
+    transition: all 0.3s;
+    cursor: default;
+  }
+
+  .squirrel-card:hover {
+    background: rgba(255,255,255,0.08);
+    transform: translateY(-3px);
+  }
+
+  .squirrel-card .emoji { font-size: 2rem; margin-bottom: 0.6rem; display: block; }
+  .squirrel-card .name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .squirrel-card .rarity-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.7rem;
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .squirrel-card .stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: rgba(255,248,237,0.5);
+  }
+
+  .squirrel-card .stats span { display: flex; align-items: center; gap: 0.25rem; }
+
+  .squirrel-card[data-rarity="Common"] .rarity-badge { background: rgba(128,128,128,0.3); color: #ccc; }
+  .squirrel-card[data-rarity="Uncommon"] .rarity-badge { background: rgba(46,204,113,0.2); color: #2ECC71; }
+  .squirrel-card[data-rarity="Rare"] .rarity-badge { background: rgba(52,152,219,0.2); color: #3498DB; }
+  .squirrel-card[data-rarity="Epic"] .rarity-badge { background: rgba(155,89,182,0.2); color: #9B59B6; }
+  .squirrel-card[data-rarity="Legendary"] .rarity-badge { background: rgba(241,196,15,0.2); color: #F1C40F; }
+  .squirrel-card[data-rarity="Mythic"] .rarity-badge { background: rgba(231,76,60,0.2); color: #E74C3C; }
+
+  /* ───── Commands ───── */
+  .commands-list {
+    margin-top: 3rem;
+    display: grid;
+    gap: 0.75rem;
+    max-width: 700px;
+  }
+
+  .command-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.3rem;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(198,139,60,0.08);
+    border-radius: 12px;
+    transition: all 0.2s;
+  }
+
+  .command-row:hover {
+    background: rgba(255,255,255,0.8);
+    border-color: rgba(198,139,60,0.2);
+  }
+
+  .command-code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--leaf);
+    background: rgba(74,124,89,0.08);
+    padding: 0.3rem 0.7rem;
+    border-radius: 6px;
+    white-space: nowrap;
+    min-width: 160px;
+  }
+
+  .command-desc {
+    font-size: 0.9rem;
+    color: var(--bark-light);
+  }
+
+  /* ───── Currency ───── */
+  .currency-row {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-top: 3rem;
+  }
+
+  .currency-card {
+    flex: 1;
+    min-width: 200px;
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(198,139,60,0.1);
+    border-radius: 16px;
+    transition: all 0.3s;
+  }
+
+  .currency-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px var(--shadow);
+  }
+
+  .currency-emoji { font-size: 2.5rem; margin-bottom: 0.6rem; display: block; }
+  .currency-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+  }
+  .currency-value {
+    font-size: 0.85rem;
+    color: var(--bark-light);
+  }
+
+  .exchange-chain {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--bark-light);
+  }
+
+  .exchange-chain .arrow { color: var(--acorn); font-size: 1.2rem; }
+
+  /* ───── CTA ───── */
+  .cta {
+    text-align: center;
+    padding: 6rem 2rem;
+    position: relative;
+  }
+
+  .cta-inner {
+    background: linear-gradient(135deg, var(--bark) 0%, var(--bark-light) 100%);
+    border-radius: 24px;
+    padding: 4rem 3rem;
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-inner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 50%, rgba(198,139,60,0.15) 0%, transparent 60%);
+  }
+
+  .cta-inner h2 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-weight: 700;
+    color: var(--cream);
+    margin-bottom: 1rem;
+    position: relative;
+  }
+
+  .cta-inner p {
+    color: rgba(255,248,237,0.7);
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+
+  .cta-inner .btn { position: relative; }
+
+  /* ───── Footer ───── */
+  footer {
+    padding: 2.5rem 2rem;
+    text-align: center;
+    border-top: 1px solid rgba(198,139,60,0.1);
+  }
+
+  footer p {
+    font-size: 0.85rem;
+    color: var(--bark-light);
+  }
+
+  footer a { color: var(--acorn); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* ───── Responsive ───── */
+  @media (max-width: 768px) {
+    .nav-links { display: none; }
+    .mobile-toggle { display: block; }
+
+    .nav-links.open {
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: rgba(255,248,237,0.97);
+      backdrop-filter: blur(12px);
+      padding: 1.5rem 2rem;
+      gap: 1.2rem;
+      box-shadow: 0 10px 40px var(--shadow);
+    }
+
+    .hero { padding: 5rem 1.5rem 3rem; }
+    .preview-card { max-width: 340px; }
+    .command-row { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+    .command-code { min-width: auto; }
+    .cta-inner { padding: 3rem 1.5rem; }
+  }
+
+  /* scroll reveal utility */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- Floating leaves -->
+<div class="forest-bg"></div>
+
+<!-- Nav -->
+<nav id="nav">
+  <a href="#" class="nav-logo"><span>🐿️</span> Squirrel Catcher</a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#squirrels">Squirrels</a></li>
+    <li><a href="#commands">Commands</a></li>
+    <li><a href="#currency">Currency</a></li>
+    <li><a href="#" class="nav-cta">Add to Discord</a></li>
+  </ul>
+  <button class="mobile-toggle" id="mobileToggle" aria-label="Menu">☰</button>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge"><div class="pulse"></div> Now live on Discord</div>
+  <h1><span class="squirrel-icon">🐿️</span> Catch Squirrels.<br>Hoard <span class="accent">Acorns.</span></h1>
+  <p class="hero-sub">A Discord catching game where you hunt rare squirrels, stack acorns, level up, and climb the leaderboard. The nuttiest bot in the forest.</p>
+  <div class="hero-buttons">
+    <a href="#" class="btn btn-primary">🌰 Add to Server</a>
+    <a href="#features" class="btn btn-secondary">Learn More</a>
+  </div>
+  <div class="hero-preview">
+    <div class="sparkle">✨</div>
+    <div class="sparkle">⭐</div>
+    <div class="sparkle">🌟</div>
+    <div class="preview-card">
+      <div class="preview-header">
+        <div class="preview-avatar">🐿️</div>
+        <span class="preview-name" style="color:#E8A838">Squirrel Catcher</span>
+        <span class="preview-bot-tag">BOT</span>
+      </div>
+      <div class="preview-embed">
+        <div class="preview-embed-title">👑 Golden Squirrel caught!</div>
+        <div class="preview-embed-desc">
+          You caught a <strong style="color:#F1C40F">Golden Squirrel</strong>!<br>
+          Reward: <span class="reward">🌰 287 acorns</span><br>
+          XP: <span style="color:#6BBF59">+80 XP</span><br><br>
+          <span style="color:#666; font-size:0.78rem">🎉 New species discovered! Added to bestiary.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features">
+  <div class="container">
+    <div class="section-label reveal">Why Players Love It</div>
+    <h2 class="section-title reveal">Built for the grind.</h2>
+    <p class="section-desc reveal">Simple to start, deep enough to keep you hooked. Every catch is a roll of the dice.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🎣</div>
+        <h3>Catch Squirrels</h3>
+        <p>Use <code>!sq catch</code> to search the forest. 14 species across 6 rarity tiers — from common Grey Squirrels to the elusive Mythic Nutcracker.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌰</div>
+        <h3>Stack Acorns</h3>
+        <p>Earn acorns from every catch and exchange them up the chain — from regular acorns all the way to shimmering Golden Acorns.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📈</div>
+        <h3>Level Up</h3>
+        <p>Gain XP with every catch. Higher levels mean better drop rates, bigger rewards, and less junk in your catches.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📖</div>
+        <h3>Bestiary</h3>
+        <p>Track every species you've discovered in a Pokédex-style bestiary. Gotta catch 'em all — all 14 of them.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏆</div>
+        <h3>Leaderboards</h3>
+        <p>Compete against your server. The leaderboard ranks players by total acorn value — flex your wealth.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎁</div>
+        <h3>Daily Rewards</h3>
+        <p>Claim daily bonuses that scale with your level. Higher level = bigger daily bag of acorns.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Squirrels -->
+<section id="squirrels">
+  <div class="container">
+    <div class="section-label reveal">The Collection</div>
+    <h2 class="section-title reveal">14 species to discover.</h2>
+    <p class="section-desc reveal">From the forests to the cosmos. Each rarity tier brings bigger rewards — and slimmer odds.</p>
+    <div class="rarity-tabs" id="rarityTabs">
+      <button class="rarity-tab active" data-rarity="All">All</button>
+      <button class="rarity-tab" data-rarity="Common">Common</button>
+      <button class="rarity-tab" data-rarity="Uncommon">Uncommon</button>
+      <button class="rarity-tab" data-rarity="Rare">Rare</button>
+      <button class="rarity-tab" data-rarity="Epic">Epic</button>
+      <button class="rarity-tab" data-rarity="Legendary">Legendary</button>
+      <button class="rarity-tab" data-rarity="Mythic">Mythic</button>
+    </div>
+    <div class="squirrel-grid" id="squirrelGrid"></div>
+  </div>
+</section>
+
+<!-- Commands -->
+<section id="commands">
+  <div class="container">
+    <div class="section-label reveal">Quick Reference</div>
+    <h2 class="section-title reveal">All commands.</h2>
+    <p class="section-desc reveal">Everything uses the <code style="background:rgba(74,124,89,0.1);padding:0.15rem 0.45rem;border-radius:4px;font-size:0.9em">!sq</code> prefix. Simple and clean.</p>
+    <div class="commands-list reveal">
+      <div class="command-row"><span class="command-code">!sq catch</span><span class="command-desc">Search the forest for a squirrel</span></div>
+      <div class="command-row"><span class="command-code">!sq bag</span><span class="command-desc">View your inventory of caught squirrels</span></div>
+      <div class="command-row"><span class="command-code">!sq balance</span><span class="command-desc">Check your acorn currencies</span></div>
+      <div class="command-row"><span class="command-code">!sq profile</span><span class="command-desc">Full stats — level, XP, balance, bestiary</span></div>
+      <div class="command-row"><span class="command-code">!sq sell &lt;name&gt;</span><span class="command-desc">Sell a squirrel for acorns</span></div>
+      <div class="command-row"><span class="command-code">!sq exchange &lt;amt&gt;</span><span class="command-desc">Convert 100 acorns → 1 silver acorn</span></div>
+      <div class="command-row"><span class="command-code">!sq daily</span><span class="command-desc">Claim your daily acorn bonus</span></div>
+      <div class="command-row"><span class="command-code">!sq bestiary</span><span class="command-desc">Pokédex-style species tracker</span></div>
+      <div class="command-row"><span class="command-code">!sq leaderboard</span><span class="command-desc">Top 10 players by total acorn value</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Currency -->
+<section id="currency">
+  <div class="container" style="text-align:center;">
+    <div class="section-label reveal">Economy</div>
+    <h2 class="section-title reveal" style="margin-left:auto;margin-right:auto;">Four-tier currency.</h2>
+    <p class="section-desc reveal" style="margin-left:auto;margin-right:auto;">Stack acorns and exchange your way to the top.</p>
+    <div class="currency-row reveal">
+      <div class="currency-card">
+        <span class="currency-emoji">🌰</span>
+        <div class="currency-name">Acorns</div>
+        <div class="currency-value">Base currency</div>
+      </div>
+      <div class="currency-card">
+        <span class="currency-emoji">🥈🌰</span>
+        <div class="currency-name">Silver Acorns</div>
+        <div class="currency-value">100 acorns each</div>
+      </div>
+      <div class="currency-card">
+        <span class="currency-emoji">💚🌰</span>
+        <div class="currency-name">Emerald Acorns</div>
+        <div class="currency-value">1,000 acorns each</div>
+      </div>
+      <div class="currency-card">
+        <span class="currency-emoji">✨🌰</span>
+        <div class="currency-name">Golden Acorns</div>
+        <div class="currency-value">10,000 acorns each</div>
+      </div>
+    </div>
+    <div class="exchange-chain reveal">
+      <span>100 🌰</span> <span class="arrow">→</span>
+      <span>1 🥈🌰</span> <span class="arrow">→</span>
+      <span>10 → 1 💚🌰</span> <span class="arrow">→</span>
+      <span>10 → 1 ✨🌰</span>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="cta-inner reveal">
+    <h2>Ready to catch some squirrels?</h2>
+    <p>Add Squirrel Catcher to your server and start hunting today.</p>
+    <a href="#" class="btn btn-primary">🐿️ Add to Discord</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>🐿️ Squirrel Catcher Bot — Made with 🌰 by <a href="#">The Nuttery</a></p>
+</footer>
+
+<script>
+  // ─── Squirrel Data ───
+  const squirrels = [
+    { name: "Grey Squirrel", emoji: "🐿️", rarity: "Common", reward: "1–5", xp: 5 },
+    { name: "Red Squirrel", emoji: "🐿️", rarity: "Common", reward: "2–8", xp: 5 },
+    { name: "Chipmunk", emoji: "🐿️", rarity: "Common", reward: "1–4", xp: 5 },
+    { name: "Black Squirrel", emoji: "🖤🐿️", rarity: "Uncommon", reward: "5–15", xp: 10 },
+    { name: "White Squirrel", emoji: "🤍🐿️", rarity: "Uncommon", reward: "8–20", xp: 10 },
+    { name: "Fox Squirrel", emoji: "🦊🐿️", rarity: "Uncommon", reward: "6–18", xp: 10 },
+    { name: "Flying Squirrel", emoji: "🪂🐿️", rarity: "Rare", reward: "15–40", xp: 20 },
+    { name: "Albino Squirrel", emoji: "👻🐿️", rarity: "Rare", reward: "20–50", xp: 20 },
+    { name: "Giant Squirrel", emoji: "💪🐿️", rarity: "Rare", reward: "25–60", xp: 20 },
+    { name: "Crystal Squirrel", emoji: "💎🐿️", rarity: "Epic", reward: "50–120", xp: 40 },
+    { name: "Shadow Squirrel", emoji: "🌑🐿️", rarity: "Epic", reward: "60–150", xp: 40 },
+    { name: "Golden Squirrel", emoji: "👑🐿️", rarity: "Legendary", reward: "150–400", xp: 80 },
+    { name: "Cosmic Squirrel", emoji: "🌌🐿️", rarity: "Legendary", reward: "200–500", xp: 80 },
+    { name: "Mythic Nutcracker", emoji: "⚡🐿️", rarity: "Mythic", reward: "500–1,200", xp: 200 },
+  ];
+
+  // ─── Render Squirrel Grid ───
+  const grid = document.getElementById('squirrelGrid');
+  const tabs = document.getElementById('rarityTabs');
+
+  function renderSquirrels(filter = 'All') {
+    const filtered = filter === 'All' ? squirrels : squirrels.filter(s => s.rarity === filter);
+    grid.innerHTML = filtered.map(s => `
+      <div class="squirrel-card" data-rarity="${s.rarity}">
+        <span class="emoji">${s.emoji}</span>
+        <div class="name">${s.name}</div>
+        <span class="rarity-badge">${s.rarity}</span>
+        <div class="stats">
+          <span>🌰 ${s.reward}</span>
+          <span>⭐ ${s.xp} XP</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  renderSquirrels();
+
+  tabs.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('rarity-tab')) return;
+    tabs.querySelectorAll('.rarity-tab').forEach(t => t.classList.remove('active'));
+    e.target.classList.add('active');
+    renderSquirrels(e.target.dataset.rarity);
+  });
+
+  // ─── Scroll effects ───
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 50);
+  });
+
+  // Intersection Observer for reveal animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal, .feature-card').forEach(el => observer.observe(el));
+
+  // ─── Mobile nav ───
+  const toggle = document.getElementById('mobileToggle');
+  const navLinks = document.getElementById('navLinks');
+  toggle.addEventListener('click', () => {
+    navLinks.classList.toggle('open');
+    toggle.textContent = navLinks.classList.contains('open') ? '✕' : '☰';
+  });
+
+  // ─── Floating leaves ───
+  const leaves = ['🍂', '🍁', '🌿', '🍃'];
+  function spawnLeaf() {
+    const leaf = document.createElement('div');
+    leaf.className = 'leaf-particle';
+    leaf.textContent = leaves[Math.floor(Math.random() * leaves.length)];
+    leaf.style.left = Math.random() * 100 + 'vw';
+    leaf.style.animationDuration = (12 + Math.random() * 18) + 's';
+    leaf.style.animationDelay = Math.random() * 5 + 's';
+    document.body.appendChild(leaf);
+    setTimeout(() => leaf.remove(), 35000);
+  }
+  setInterval(spawnLeaf, 3000);
+  for (let i = 0; i < 4; i++) setTimeout(spawnLeaf, i * 800);
+</script>
+</body>
+</html>
