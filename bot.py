@@ -135,6 +135,7 @@ def roll_catch(player_level: int) -> tuple:
 class MenuView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=120)
+        self.add_item(discord.ui.Button(label="Donate", style=discord.ButtonStyle.link, emoji="💛", url="https://ko-fi.com/squirrelcatcher", row=0))
 
     @discord.ui.button(label="Catch!", style=discord.ButtonStyle.green, emoji="🪤", row=0)
     async def catch_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -151,8 +152,6 @@ class MenuView(discord.ui.View):
     @discord.ui.button(label="Profile", style=discord.ButtonStyle.primary, emoji="🐿️", row=0)
     async def profile_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await do_profile(interaction)
-
-    @discord.ui.button(label="Donate", style=discord.ButtonStyle.link, emoji="💛", url="https://ko-fi.com/squirrelcatcher", row=0)
 
     @discord.ui.select(
         placeholder="More actions...",
