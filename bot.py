@@ -129,7 +129,7 @@ SHOP_ITEMS = {
 
 UPGRADE_TIERS = {
     "trap_tier": {"name": "Trap Speed", "max": 3,
-                   "tiers": [{"cost": 500, "label": "8s cooldown"}, {"cost": 2000, "label": "6s cooldown"}, {"cost": 10000, "label": "5s cooldown"}]},
+                   "tiers": [{"cost": 500, "label": "3s cooldown"}, {"cost": 2000, "label": "2.5s cooldown"}, {"cost": 10000, "label": "2s cooldown"}]},
     "junk_resist_tier": {"name": "Junk Resistance", "max": 3,
                           "tiers": [{"cost": 1000, "label": "-3% junk"}, {"cost": 5000, "label": "-5% junk"}, {"cost": 20000, "label": "-8% junk"}]},
     "acorn_magnet_tier": {"name": "Acorn Magnet", "max": 3,
@@ -142,7 +142,7 @@ ACORN_MAGNET_BONUSES = [0, 5, 10, 15]  # index = acorn_magnet_tier
 
 # ─── COOLDOWNS ────────────────────────────────────────────────────────────────
 
-CATCH_COOLDOWN = 10  # base seconds between catches
+CATCH_COOLDOWN = 3.5  # base seconds between catches
 cooldowns: dict[int, datetime] = {}
 
 # Track which menu page an interaction came from (Interaction uses __slots__)
