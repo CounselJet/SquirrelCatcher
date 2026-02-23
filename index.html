@@ -380,6 +380,26 @@
     font-weight: 600;
   }
 
+  .preview-embed-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.8rem;
+  }
+
+  .preview-embed-thumb {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    background: #2B2D31;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: rgba(255,255,255,0.15);
+  }
+
   .sparkle {
     position: absolute;
     font-size: 1.5rem;
@@ -874,7 +894,7 @@
     <li><a href="#shop">Shop</a></li>
     <li><a href="#currency">Currency</a></li>
     <li><a href="https://discord.com/oauth2/authorize?client_id=1475273836424331399&permissions=274877975552&scope=bot" class="nav-cta">Add to Discord</a></li>
-    <li><a href="#donate" class="nav-donate">❤️ Donate</a></li>
+    <li><a href="https://ko-fi.com/squirrelcatcher" class="nav-donate" target="_blank">❤️ Donate</a></li>
   </ul>
   <button class="mobile-toggle" id="mobileToggle" aria-label="Menu">☰</button>
 </nav>
@@ -899,12 +919,17 @@
         <span class="preview-bot-tag">BOT</span>
       </div>
       <div class="preview-embed">
-        <div class="preview-embed-title">👑 Golden Squirrel caught!</div>
-        <div class="preview-embed-desc">
-          You caught a <strong style="color:#F1C40F">Golden Squirrel</strong>!<br>
-          Reward: <span class="reward">🌰 287 acorns</span><br>
-          XP: <span style="color:#6BBF59">+80 XP</span><br><br>
-          <span style="color:#666; font-size:0.78rem">🎉 New species discovered! Added to bestiary.</span>
+        <div class="preview-embed-body">
+          <div>
+            <div class="preview-embed-title">👑 Golden Squirrel caught!</div>
+            <div class="preview-embed-desc">
+              You caught a <strong style="color:#F1C40F">Golden Squirrel</strong>!<br>
+              Reward: <span class="reward">🌰 287 acorns</span><br>
+              XP: <span style="color:#6BBF59">+80 XP</span><br><br>
+              <span style="color:#666; font-size:0.78rem">🎉 New species discovered! Added to bestiary.</span>
+            </div>
+          </div>
+          <div class="preview-embed-thumb">?</div>
         </div>
       </div>
     </div>
@@ -1116,7 +1141,7 @@
     <h2>Ready to catch some squirrels?</h2>
     <p>Add Squirrel Catcher to your server and start hunting today.</p>
     <a href="https://discord.com/oauth2/authorize?client_id=1475273836424331399&permissions=274877975552&scope=bot" class="btn btn-primary">🐿️ Add to Discord</a>
-    <a href="#donate" class="btn btn-donate">❤️ Donate</a>
+    <a href="https://ko-fi.com/squirrelcatcher" class="btn btn-donate" target="_blank">❤️ Donate</a>
   </div>
 </section>
 
