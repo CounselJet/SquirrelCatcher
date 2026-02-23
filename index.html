@@ -556,7 +556,7 @@
 
   .squirrel-card img {
     width: 100%;
-    height: 120px;
+    height: 180px;
     object-fit: cover;
     border-radius: 10px;
     margin-bottom: 0.6rem;
@@ -594,6 +594,22 @@
   .squirrel-card[data-rarity="Epic"] .rarity-badge { background: rgba(155,89,182,0.2); color: #9B59B6; }
   .squirrel-card[data-rarity="Legendary"] .rarity-badge { background: rgba(241,196,15,0.2); color: #F1C40F; }
   .squirrel-card[data-rarity="Mythic"] .rarity-badge { background: rgba(231,76,60,0.2); color: #E74C3C; }
+
+  /* Mystery squirrel cards */
+  .squirrel-card.mystery img {
+    filter: brightness(0) saturate(0);
+    opacity: 0.3;
+  }
+  .squirrel-card.mystery .name {
+    color: rgba(255,248,237,0.3);
+    font-style: italic;
+  }
+  .squirrel-card.mystery .stats {
+    color: rgba(255,248,237,0.2);
+  }
+  .squirrel-card.mystery:hover {
+    background: rgba(255,255,255,0.06);
+  }
 
   /* ───── Commands ───── */
   .commands-list {
@@ -1018,19 +1034,28 @@
   const grid = document.getElementById('squirrelGrid');
   const tabs = document.getElementById('rarityTabs');
 
+  // Squirrels revealed on the website (Common + 1 Uncommon)
+  const revealedNames = new Set([
+    "Grey Squirrel", "Red Squirrel", "Chipmunk", "Eastern Squirrel",
+    "Park Squirrel", "Acorn Hoarder", "Bushy Tail", "Tiny Squirrel",
+    "Black Squirrel"
+  ]);
+
   function renderSquirrels(filter = 'All') {
     const filtered = filter === 'All' ? squirrels : squirrels.filter(s => s.rarity === filter);
-    grid.innerHTML = filtered.map(s => `
-      <div class="squirrel-card" data-rarity="${s.rarity}">
-        <img src="${s.image}" alt="${s.name}" loading="lazy">
-        <div class="name">${s.emoji} ${s.name}</div>
+    grid.innerHTML = filtered.map(s => {
+      const isMystery = !revealedNames.has(s.name);
+      return `
+      <div class="squirrel-card${isMystery ? ' mystery' : ''}" data-rarity="${s.rarity}">
+        <img src="${s.image}" alt="${isMystery ? '???' : s.name}" loading="lazy">
+        <div class="name">${isMystery ? '❓ ???' : s.emoji + ' ' + s.name}</div>
         <span class="rarity-badge">${s.rarity}</span>
         <div class="stats">
-          <span>🌰 ${s.reward}</span>
-          <span>⭐ ${s.xp} XP</span>
+          <span>🌰 ${isMystery ? '???' : s.reward}</span>
+          <span>⭐ ${isMystery ? '???' : s.xp + ' XP'}</span>
         </div>
       </div>
-    `).join('');
+    `}).join('');
   }
 
   renderSquirrels();
