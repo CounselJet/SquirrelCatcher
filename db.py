@@ -64,6 +64,15 @@ async def init_db(database_url: str):
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )
         """)
+        # Create referrals table
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS referrals (
+                id SERIAL PRIMARY KEY,
+                referrer_id TEXT NOT NULL,
+                referred_id TEXT NOT NULL UNIQUE,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
 
 
 def _row_to_dict(row: asyncpg.Record) -> dict:
@@ -236,6 +245,33 @@ async def delete_buff(buff_id: int):
     """Delete a buff by id."""
     async with pool.acquire() as conn:
         await conn.execute("DELETE FROM player_buffs WHERE id = $1", buff_id)
+
+
+async def add_referral(referrer_id: str, referred_id: str):
+    """Record a referral. referred_id is UNIQUE so one referral per new player."""
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO referrals (referrer_id, referred_id) VALUES ($1, $2)",
+            referrer_id, referred_id,
+        )
+
+
+async def get_referral_count(user_id: str) -> int:
+    """Count how many people a user has referred."""
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT COUNT(*) AS cnt FROM referrals WHERE referrer_id = $1", user_id,
+        )
+        return row["cnt"]
+
+
+async def get_referred_by(user_id: str) -> str | None:
+    """Check if this user was already referred. Returns referrer_id or None."""
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT referrer_id FROM referrals WHERE referred_id = $1", user_id,
+        )
+        return row["referrer_id"] if row else None
 
 
 async def close_db():

@@ -178,6 +178,34 @@ ACORN_MAGNET_BONUSES = [0, 5, 10, 15]  # index = acorn_magnet_tier
 
 # ─── COOLDOWNS ────────────────────────────────────────────────────────────────
 
+# ─── REFERRAL SYSTEM ─────────────────────────────────────────────────────────
+
+REFERRAL_REWARD_REFERRER = 500    # acorns for the person who referred
+REFERRAL_REWARD_REFERRED = 200    # acorns for the new player
+REFERRAL_MAX_CATCHES = 5          # new player must have <= this many catches to use referral
+
+# ─── ROTATING HINTS ──────────────────────────────────────────────────────────
+
+HINTS = [
+    f"💡 Invite friends with `{PREFIX} refer @friend` — you both earn bonus acorns!",
+    "💡 Bait from the Shop reduces junk catches — try Peanut Butter Trap!",
+    "💡 Hunters auto-catch squirrels while you're away! Check the Shop.",
+    f"💡 Claim your daily bonus with `{PREFIX} daily` — scales with your level!",
+    "💡 Exchange 100🌰 into Silver Acorns for big purchases!",
+    "💡 Check the Leaderboard to see how you stack up!",
+    "💡 Rare Scent bait boosts Rare+ drop rates by 50%!",
+    "💡 Upgrade your trap in the Shop to catch faster!",
+    f"💡 Use `{PREFIX} sell <name>` to sell duplicate squirrels for acorns!",
+    "💡 The Bestiary tracks every species you've discovered!",
+    "💡 XP Potion gives 3x XP for 20 minutes — great for leveling!",
+    "💡 Lucky Acorn doubles your acorn rewards for 20 minutes!",
+    "💡 Higher levels reduce your junk catch chance!",
+    "💡 Silver Shimmer gives a 10% chance for bonus Silver Acorns!",
+    "💡 Mythic squirrels are incredibly rare — only 0.004% chance!",
+]
+
+# ─── COOLDOWNS ────────────────────────────────────────────────────────────────
+
 CATCH_COOLDOWN = 3.5  # base seconds between catches
 cooldowns: dict[int, datetime] = {}
 
@@ -298,7 +326,7 @@ class MenuButton(discord.ui.Button):
             "shop_items": do_shop_items, "shop_upgrades": do_shop_upgrades,
             "daily": do_daily, "bestiary": do_bestiary,
             "leaderboard": do_leaderboard, "exchange": do_exchange_view,
-            "help": do_help,
+            "help": do_help, "referrals": do_referrals,
         }
         handler = handlers.get(self.action)
         if handler:
@@ -371,6 +399,8 @@ class MenuView(discord.ui.View):
                                      action="leaderboard", custom_id="info:leaderboard", row=1))
             self.add_item(MenuButton(label="Help", emoji="❓", style=discord.ButtonStyle.primary,
                                      action="help", custom_id="info:help", row=1))
+            self.add_item(MenuButton(label="Referrals", emoji="🤝", style=discord.ButtonStyle.primary,
+                                     action="referrals", custom_id="info:referrals", row=2))
 
 
 
@@ -941,6 +971,12 @@ async def do_catch(ctx_or_interaction):
 
         if sq_rarity in ("Epic", "Legendary", "Mythic"):
             embed.set_footer(text=f"🎉 Wow! A {sq_rarity} catch!")
+        elif random.random() < 0.2:
+            embed.set_footer(text=random.choice(HINTS))
+
+    # Junk catches also eligible for hints
+    if result[0] == "junk" and random.random() < 0.2:
+        embed.set_footer(text=random.choice(HINTS))
 
     leveled = check_level_up(player)
     if leveled:
@@ -1099,6 +1135,10 @@ async def do_profile(ctx_or_interaction):
 
     unique = len(player.get("catches", {}))
     embed.add_field(name="Bestiary", value=f"📖 {unique}/{len(SQUIRRELS)} species discovered", inline=False)
+
+    ref_count = await db.get_referral_count(user_id)
+    embed.add_field(name="Referrals", value=f"🤝 {ref_count} friend{'s' if ref_count != 1 else ''} invited", inline=True)
+
     await _send(ctx_or_interaction, embed)
 
 
@@ -1201,6 +1241,100 @@ async def do_exchange_info(ctx_or_interaction):
     await _send(ctx_or_interaction, embed)
 
 
+async def do_refer(ctx_or_interaction, target_user=None):
+    """Handle referral: the CALLER is the new player, target_user is who referred them."""
+    is_interaction = isinstance(ctx_or_interaction, discord.Interaction)
+    user = ctx_or_interaction.user if is_interaction else ctx_or_interaction.author
+    user_id = str(user.id)
+
+    if target_user is None:
+        embed = discord.Embed(
+            title="🤝 Referral System",
+            description=(
+                f"Were you invited by a friend? Use `{PREFIX} refer @friend` to give them credit!\n\n"
+                f"**You** get **{REFERRAL_REWARD_REFERRED}** 🌰 and **they** get **{REFERRAL_REWARD_REFERRER}** 🌰!\n"
+                f"You must have {REFERRAL_MAX_CATCHES} or fewer catches to use a referral."
+            ),
+            color=0x3498DB,
+        )
+        await _send(ctx_or_interaction, embed)
+        return
+
+    referrer_id = str(target_user.id)
+
+    # Validate: can't refer yourself
+    if referrer_id == user_id:
+        embed = discord.Embed(title="❌ Referral Failed", description="You can't refer yourself!", color=0xE74C3C)
+        await _send(ctx_or_interaction, embed)
+        return
+
+    # Validate: caller must be a new player
+    player = await db.get_player(user_id)
+    if player["total_catches"] > REFERRAL_MAX_CATCHES:
+        embed = discord.Embed(
+            title="❌ Referral Failed",
+            description=f"You must have **{REFERRAL_MAX_CATCHES} or fewer** catches to use a referral. You have {player['total_catches']}.",
+            color=0xE74C3C,
+        )
+        await _send(ctx_or_interaction, embed)
+        return
+
+    # Validate: caller hasn't already been referred
+    existing = await db.get_referred_by(user_id)
+    if existing:
+        embed = discord.Embed(title="❌ Referral Failed", description="You've already used a referral!", color=0xE74C3C)
+        await _send(ctx_or_interaction, embed)
+        return
+
+    # Validate: referrer exists as a player
+    referrer = await db.get_player(referrer_id)
+    if referrer["total_catches"] == 0 and referrer["acorns"] == 0:
+        embed = discord.Embed(title="❌ Referral Failed", description="That user hasn't started playing yet!", color=0xE74C3C)
+        await _send(ctx_or_interaction, embed)
+        return
+
+    # Add referral and award both
+    await db.add_referral(referrer_id, user_id)
+    player["acorns"] += REFERRAL_REWARD_REFERRED
+    await db.update_player(user_id, player)
+    referrer["acorns"] += REFERRAL_REWARD_REFERRER
+    await db.update_player(referrer_id, referrer)
+
+    embed = discord.Embed(
+        title="🤝 Referral Successful!",
+        description=(
+            f"**{user.display_name}** was referred by **{target_user.display_name}**!\n\n"
+            f"🌰 {user.display_name} received **{REFERRAL_REWARD_REFERRED}** acorns\n"
+            f"🌰 {target_user.display_name} received **{REFERRAL_REWARD_REFERRER}** acorns"
+        ),
+        color=0x2ECC71,
+    )
+    await _send(ctx_or_interaction, embed)
+
+
+async def do_referrals(ctx_or_interaction):
+    """Show referral stats for a user."""
+    is_interaction = isinstance(ctx_or_interaction, discord.Interaction)
+    user = ctx_or_interaction.user if is_interaction else ctx_or_interaction.author
+    user_id = str(user.id)
+
+    ref_count = await db.get_referral_count(user_id)
+    total_earned = ref_count * REFERRAL_REWARD_REFERRER
+
+    embed = discord.Embed(
+        title=f"🤝 {user.display_name}'s Referrals",
+        color=0x3498DB,
+    )
+    embed.add_field(name="Friends Invited", value=f"🤝 {ref_count}", inline=True)
+    embed.add_field(name="Acorns Earned", value=f"🌰 {total_earned:,}", inline=True)
+    embed.add_field(
+        name="Invite More!",
+        value=f"Tell friends to use `{PREFIX} refer @{user.display_name}` when they start playing!",
+        inline=False,
+    )
+    await _send(ctx_or_interaction, embed)
+
+
 async def do_help(ctx_or_interaction):
     embed = discord.Embed(
         title="🐿️ Squirrel Catcher - Commands",
@@ -1220,6 +1354,8 @@ async def do_help(ctx_or_interaction):
         (f"`{PREFIX} bestiary`", "View all discoverable squirrels"),
         (f"`{PREFIX} sell <squirrel name>`", "Sell a squirrel from your bag"),
         (f"`{PREFIX} daily`", "Claim your daily acorn bonus"),
+        (f"`{PREFIX} refer @user`", "Use a friend's referral — you both earn acorns!"),
+        (f"`{PREFIX} referrals`", "See how many friends you've invited"),
     ]
     for name, desc in cmds:
         embed.add_field(name=name, value=desc, inline=False)
@@ -1779,6 +1915,16 @@ async def buy_cmd(ctx, *, item_name: str = ""):
 @bot.command(name="buffs")
 async def buffs_cmd(ctx):
     await do_buffs(ctx)
+
+
+@bot.command(name="refer", aliases=["ref"])
+async def refer_cmd(ctx, target: discord.User = None):
+    await do_refer(ctx, target)
+
+
+@bot.command(name="referrals")
+async def referrals_cmd(ctx):
+    await do_referrals(ctx)
 
 
 @bot.command(name="donate")
