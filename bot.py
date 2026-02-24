@@ -18,7 +18,7 @@ import db
 load_dotenv()
 BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
-PREFIX = os.getenv("PREFIX", "!sq")
+PREFIX = os.getenv("PREFIX", "!sq ")
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -187,15 +187,15 @@ REFERRAL_MAX_CATCHES = 5          # new player must have <= this many catches to
 # ─── ROTATING HINTS ──────────────────────────────────────────────────────────
 
 HINTS = [
-    f"💡 Invite friends with `{PREFIX} refer @friend` — you both earn bonus acorns!",
+    f"💡 Invite friends with `{PREFIX}refer @friend` — you both earn bonus acorns!",
     "💡 Bait from the Shop reduces junk catches — try Peanut Butter Trap!",
     "💡 Hunters auto-catch squirrels while you're away! Check the Shop.",
-    f"💡 Claim your daily bonus with `{PREFIX} daily` — scales with your level!",
+    f"💡 Claim your daily bonus with `{PREFIX}daily` — scales with your level!",
     "💡 Exchange 100🌰 into Silver Acorns for big purchases!",
     "💡 Check the Leaderboard to see how you stack up!",
     "💡 Rare Scent bait boosts Rare+ drop rates by 50%!",
     "💡 Upgrade your trap in the Shop to catch faster!",
-    f"💡 Use `{PREFIX} sell <name>` to sell duplicate squirrels for acorns!",
+    f"💡 Use `{PREFIX}sell <name>` to sell duplicate squirrels for acorns!",
     "💡 The Bestiary tracks every species you've discovered!",
     "💡 XP Potion gives 3x XP for 20 minutes — great for leveling!",
     "💡 Lucky Acorn doubles your acorn rewards for 20 minutes!",
@@ -1234,7 +1234,7 @@ async def do_exchange_info(ctx_or_interaction):
             "• 100 🌰 Acorns → 1 🥈🌰 Silver Acorn\n"
             "• 10 🥈🌰 Silver Acorns → 1 💚🌰 Emerald Acorn\n"
             "• 10 💚🌰 Emerald Acorns → 1 ✨🌰 Golden Acorn\n\n"
-            f"Use `{PREFIX} exchange <amount>` to convert."
+            f"Use `{PREFIX}exchange <amount>` to convert."
         ),
         color=0x3498DB,
     )
@@ -1251,7 +1251,7 @@ async def do_refer(ctx_or_interaction, target_user=None):
         embed = discord.Embed(
             title="🤝 Referral System",
             description=(
-                f"Were you invited by a friend? Use `{PREFIX} refer @friend` to give them credit!\n\n"
+                f"Were you invited by a friend? Use `{PREFIX}refer @friend` to give them credit!\n\n"
                 f"**You** get **{REFERRAL_REWARD_REFERRED}** 🌰 and **they** get **{REFERRAL_REWARD_REFERRER}** 🌰!\n"
                 f"You must have {REFERRAL_MAX_CATCHES} or fewer catches to use a referral."
             ),
@@ -1329,7 +1329,7 @@ async def do_referrals(ctx_or_interaction):
     embed.add_field(name="Acorns Earned", value=f"🌰 {total_earned:,}", inline=True)
     embed.add_field(
         name="Invite More!",
-        value=f"Tell friends to use `{PREFIX} refer @{user.display_name}` when they start playing!",
+        value=f"Tell friends to use `{PREFIX}refer @{user.display_name}` when they start playing!",
         inline=False,
     )
     await _send(ctx_or_interaction, embed)
@@ -1342,20 +1342,20 @@ async def do_help(ctx_or_interaction):
         color=0x8B4513,
     )
     cmds = [
-        (f"`{PREFIX} catch`", "Set a trap and try to catch a squirrel!"),
-        (f"`{PREFIX} bag`", "View your caught squirrels"),
-        (f"`{PREFIX} balance`", "Check your acorn stash"),
-        (f"`{PREFIX} profile`", "View your full profile"),
-        (f"`{PREFIX} shop`", "Browse items and upgrades"),
-        (f"`{PREFIX} buy <item>`", "Purchase an item or upgrade"),
-        (f"`{PREFIX} buffs`", "View your active buffs and upgrades"),
-        (f"`{PREFIX} exchange <amount>`", "Convert 100 acorns → 1 silver acorn, etc."),
-        (f"`{PREFIX} leaderboard`", "See the top squirrel catchers"),
-        (f"`{PREFIX} bestiary`", "View all discoverable squirrels"),
-        (f"`{PREFIX} sell <squirrel name>`", "Sell a squirrel from your bag"),
-        (f"`{PREFIX} daily`", "Claim your daily acorn bonus"),
-        (f"`{PREFIX} refer @user`", "Use a friend's referral — you both earn acorns!"),
-        (f"`{PREFIX} referrals`", "See how many friends you've invited"),
+        (f"`{PREFIX}catch`", "Set a trap and try to catch a squirrel!"),
+        (f"`{PREFIX}bag`", "View your caught squirrels"),
+        (f"`{PREFIX}balance`", "Check your acorn stash"),
+        (f"`{PREFIX}profile`", "View your full profile"),
+        (f"`{PREFIX}shop`", "Browse items and upgrades"),
+        (f"`{PREFIX}buy <item>`", "Purchase an item or upgrade"),
+        (f"`{PREFIX}buffs`", "View your active buffs and upgrades"),
+        (f"`{PREFIX}exchange <amount>`", "Convert 100 acorns → 1 silver acorn, etc."),
+        (f"`{PREFIX}leaderboard`", "See the top squirrel catchers"),
+        (f"`{PREFIX}bestiary`", "View all discoverable squirrels"),
+        (f"`{PREFIX}sell <squirrel name>`", "Sell a squirrel from your bag"),
+        (f"`{PREFIX}daily`", "Claim your daily acorn bonus"),
+        (f"`{PREFIX}refer @user`", "Use a friend's referral — you both earn acorns!"),
+        (f"`{PREFIX}referrals`", "See how many friends you've invited"),
     ]
     for name, desc in cmds:
         embed.add_field(name=name, value=desc, inline=False)
@@ -1449,7 +1449,7 @@ async def do_buy(ctx_or_interaction, item_key: str):
 
     # Check shop items
     if item_key not in SHOP_ITEMS:
-        msg = f"❌ Unknown item: **{item_key}**. Use `{PREFIX} shop` to see available items."
+        msg = f"❌ Unknown item: **{item_key}**. Use `{PREFIX}shop` to see available items."
         if is_interaction:
             await ctx_or_interaction.response.send_message(msg, ephemeral=True)
         else:
@@ -1547,7 +1547,7 @@ async def do_buffs(ctx_or_interaction):
         else:
             embed.add_field(name="Active Buffs", value="None", inline=False)
     else:
-        embed.add_field(name="Active Buffs", value=f"No active buffs. Visit `{PREFIX} shop` to buy some!", inline=False)
+        embed.add_field(name="Active Buffs", value=f"No active buffs. Visit `{PREFIX}shop` to buy some!", inline=False)
 
     # Permanent upgrades
     upgrade_lines = []
@@ -1559,7 +1559,7 @@ async def do_buffs(ctx_or_interaction):
     if upgrade_lines:
         embed.add_field(name="Permanent Upgrades", value="\n".join(upgrade_lines), inline=False)
     else:
-        embed.add_field(name="Permanent Upgrades", value=f"None yet. Visit `{PREFIX} shop`!", inline=False)
+        embed.add_field(name="Permanent Upgrades", value=f"None yet. Visit `{PREFIX}shop`!", inline=False)
 
     await _send(ctx_or_interaction, embed)
 
@@ -1689,7 +1689,7 @@ async def on_ready():
     print(f"   Prefix: {PREFIX}")
     print(f"   Servers: {len(bot.guilds)}")
     print(f"   Database: connected")
-    await bot.change_presence(activity=discord.Game(name=f"{PREFIX} help | 🐿️"))
+    await bot.change_presence(activity=discord.Game(name=f"{PREFIX}help | 🐿️"))
 
 
 @bot.event
@@ -1727,7 +1727,7 @@ async def on_guild_join(guild: discord.Guild):
         ),
         inline=False,
     )
-    embed.set_footer(text=f"Type {PREFIX} help for all commands")
+    embed.set_footer(text=f"Type {PREFIX}help for all commands")
     await channel.send(embed=embed, view=MenuView())
 
 # ─── COMMANDS ─────────────────────────────────────────────────────────────────
@@ -1766,7 +1766,7 @@ async def exchange_cmd(ctx, amount: int = 0):
             "• 100 🌰 Acorns → 1 🥈🌰 Silver Acorn\n"
             "• 10 🥈🌰 Silver Acorns → 1 💚🌰 Emerald Acorn\n"
             "• 10 💚🌰 Emerald Acorns → 1 ✨🌰 Golden Acorn\n\n"
-            f"Usage: `{PREFIX} exchange <acorns to convert>`"
+            f"Usage: `{PREFIX}exchange <acorns to convert>`"
         )
         return
 
@@ -1796,7 +1796,7 @@ async def exchange_silver_cmd(ctx, amount: int = 0):
     player = await db.get_player(user_id)
 
     if amount <= 0:
-        await ctx.send(f"Usage: `{PREFIX} exchange_silver <amount>` (10 🥈🌰 = 1 💚🌰)")
+        await ctx.send(f"Usage: `{PREFIX}exchange_silver <amount>` (10 🥈🌰 = 1 💚🌰)")
         return
     if player["silver_acorns"] < amount:
         await ctx.send(f"❌ You only have **{player['silver_acorns']:,}** 🥈🌰!")
@@ -1821,7 +1821,7 @@ async def exchange_emerald_cmd(ctx, amount: int = 0):
     player = await db.get_player(user_id)
 
     if amount <= 0:
-        await ctx.send(f"Usage: `{PREFIX} exchange_emerald <amount>` (10 💚🌰 = 1 ✨🌰)")
+        await ctx.send(f"Usage: `{PREFIX}exchange_emerald <amount>` (10 💚🌰 = 1 ✨🌰)")
         return
     if player["emerald_acorns"] < amount:
         await ctx.send(f"❌ You only have **{player['emerald_acorns']:,}** 💚🌰!")
@@ -1853,7 +1853,7 @@ async def bestiary_cmd(ctx):
 @bot.command(name="sell")
 async def sell_cmd(ctx, *, squirrel_name: str = ""):
     if not squirrel_name:
-        await ctx.send(f"Usage: `{PREFIX} sell <squirrel name>` — Sell one squirrel for acorns.")
+        await ctx.send(f"Usage: `{PREFIX}sell <squirrel name>` — Sell one squirrel for acorns.")
         return
 
     user_id = str(ctx.author.id)
@@ -1867,7 +1867,7 @@ async def sell_cmd(ctx, *, squirrel_name: str = ""):
             break
 
     if not match:
-        await ctx.send(f"❌ Unknown squirrel: **{squirrel_name}**. Check `{PREFIX} bestiary` for names.")
+        await ctx.send(f"❌ Unknown squirrel: **{squirrel_name}**. Check `{PREFIX}bestiary` for names.")
         return
 
     sq_name = match[0]
@@ -1907,7 +1907,7 @@ async def shop_cmd(ctx):
 @bot.command(name="buy")
 async def buy_cmd(ctx, *, item_name: str = ""):
     if not item_name:
-        await ctx.send(f"Usage: `{PREFIX} buy <item>` — Use `{PREFIX} shop` to see items.")
+        await ctx.send(f"Usage: `{PREFIX}buy <item>` — Use `{PREFIX}shop` to see items.")
         return
     await do_buy(ctx, item_name.lower().replace(" ", "_"))
 
@@ -1950,7 +1950,7 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         return  # Silently ignore
     if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send(f"❌ Missing argument! Try `{PREFIX} help` for usage info.")
+        await ctx.send(f"❌ Missing argument! Try `{PREFIX}help` for usage info.")
     else:
         print(f"Error: {error}")
         await ctx.send("❌ Something went wrong! Try again.")
